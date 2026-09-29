@@ -1,0 +1,187 @@
+/* ============================================
+   Andrew Meyers — site stylesheet
+   Lavender / dark purple / black theme
+   ============================================ */
+
+:root {
+  --bg: #f4f0fa;              /* lavender background */
+  --card-bg: #ffffff;
+  --ink: #1a1626;              /* near-black, purple-tinted */
+  --ink-muted: #4a4458;
+  --purple-deep: #4c2a85;      /* dark purple for headings */
+  --purple: #6b46c1;           /* primary purple */
+  --lavender-accent: #9f7aea;
+  --border: #e2d6f7;
+  --max-width: 780px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+/* ---- Nav ---- */
+nav.site-nav {
+  display: flex;
+  gap: 28px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+}
+
+nav.site-nav a {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+nav.site-nav a:hover,
+nav.site-nav a[aria-current="page"] {
+  color: var(--purple);
+}
+
+nav.site-nav a[aria-current="page"] {
+  border-bottom: 2px solid var(--purple);
+  padding-bottom: 2px;
+}
+
+/* ---- Headings ---- */
+h1 {
+  font-size: 2.4rem;
+  color: var(--purple-deep);
+  margin: 0 0 6px;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 1.4rem;
+  color: var(--purple-deep);
+  margin-top: 2.4em;
+  margin-bottom: 0.5em;
+}
+
+.eyebrow {
+  font-family: system-ui, sans-serif;
+  color: var(--lavender-accent);
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 0 0 28px;
+}
+
+p {
+  color: var(--ink-muted);
+  max-width: 68ch;
+}
+
+/* ---- Cards / panels ---- */
+.panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px 32px;
+  margin-top: 24px;
+}
+
+/* ---- Roadmap table ---- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: system-ui, sans-serif;
+  font-size: 0.88rem;
+  margin-top: 8px;
+}
+
+caption {
+  text-align: left;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+
+th, td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  background: #f3e8ff;
+  color: var(--purple-deep);
+  font-weight: 700;
+}
+
+tr:nth-child(even) td {
+  background: #faf7fe;
+}
+
+.exp {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+/* ---- Lists ---- */
+ul.plain {
+  padding-left: 1.2em;
+  color: var(--ink-muted);
+}
+
+ul.plain li {
+  margin-bottom: 8px;
+}
+
+/* ---- Connect links ---- */
+.connect-list a {
+  color: var(--purple);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.connect-list a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Footer ---- */
+footer {
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--lavender-accent);
+}
+
+/* ---- Focus visibility ---- */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 1.9rem; }
+  .wrap { padding: 32px 18px 60px; }
+  table, thead, tbody, th, td, tr { font-size: 0.78rem; }
+}
