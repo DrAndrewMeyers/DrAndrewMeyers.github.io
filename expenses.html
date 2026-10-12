@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R&amp;D Expenses — Dr. Andrew Meyers</title>
+  <!-- My website's stylesheet: gives this page the same nav bar as the other pages -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- ===== STYLES: neutral colors everywhere, one accent (purple) =====
+       The purple is used ONLY on the summary numbers and on the most important
+       bar or line in each chart. Everything else is gray, white or near-black. -->
+  <style>
+    :root {
+      --accent: #6b46c1;          /* purple from style.css (--purple) */
+      --page: #f5f5f6;            /* neutral page background */
+      --card: #ffffff;
+      --ink: #1c1b1f;             /* body text: near-black, easy to read */
+      --ink-soft: #3a3940;        /* captions: still dark */
+      --line: #dcdce0;            /* borders and rules */
+      --grid: #ececef;            /* chart grid lines */
+    }
+
+    /* Page — overrides the site's lavender background and muted text for this page */
+    body {
+      background: var(--page);
+      color: var(--ink);
+      font-size: 18px;
+      font-variant-ligatures: none;   /* no fi/ff ligatures */
+    }
+    main.dash { max-width: var(--max-width, 780px); margin: 0 auto; padding: 48px 24px 80px; }   /* same width as the other pages */
+    main.dash p:not(.eyebrow) { color: var(--ink); max-width: none; }
+
+    /* Headings: Bookman Old Style, near-black (not purple) */
+    main.dash h2 {
+      font-family: "Bookman Old Style", "Bookman", "URW Bookman", "URW Bookman L", Georgia, serif;
+      color: var(--ink);
+      font-variant-ligatures: none;
+    }
+    main.dash h2 { font-size: 1.45rem; margin: 0 0 6px; }
+    .note { color: var(--ink-soft); margin: 0 0 28px; }
+
+    /* "Immediate Need" box: the text uses style.css's .eyebrow (same as index.html's
+       second line); the box has the purple accent on its left edge */
+    .need-box { background: var(--card); border: 1px solid var(--line);
+                border-left: 6px solid var(--accent); padding: 16px 22px; margin: 0 0 28px; }
+    .need-box .eyebrow { margin: 0; }
+
+    /* Chart titles: same font and color as the heading on index.html (style.css h1), size unchanged */
+    main.dash .chart-box h2 { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+                                 color: var(--purple-deep, #4c2a85); }
+
+    /* Filter bar */
+    .filters { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: end;
+               padding: 18px 20px; margin-bottom: 40px; background: var(--card); border: 1px solid var(--line); }
+    .filters label { display: flex; flex-direction: column; font-size: 0.95rem; font-weight: bold; gap: 4px; color: var(--ink); }
+    .filters select { font: inherit; font-weight: normal; font-size: 1rem; padding: 6px 8px; min-height: 44px;
+                      color: var(--ink); background: var(--card); border: 1px solid #9a9aa2; }
+    .filters button { font: inherit; font-size: 0.95rem; padding: 8px 16px; min-height: 44px; cursor: pointer;
+                      color: var(--ink); background: #ececef; border: 1px solid #9a9aa2; }
+
+    /* SUMMARY NUMBERS — the biggest thing on the page, in the accent color */
+    .total { background: var(--card); border: 1px solid var(--line); padding: 24px 28px; margin-bottom: 20px; }
+    .total .label, .tile .label { display: block; font-size: 1.05rem; font-weight: bold; color: var(--ink); }
+    .total .value { display: block; font-size: 4.2rem; line-height: 1.1; font-weight: bold; color: var(--accent);
+                    font-variant-numeric: tabular-nums; }
+    .total .scope { display: block; font-size: 0.95rem; color: var(--ink-soft); }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 72px; }
+    .tile { background: var(--card); border: 1px solid var(--line); padding: 18px 20px; }
+    .tile .value { display: block; font-size: 2.6rem; line-height: 1.1; font-weight: bold; color: var(--accent);
+                   font-variant-numeric: tabular-nums; }
+    .tile .share { display: block; font-size: 0.95rem; color: var(--ink-soft); }
+
+    /* Charts: white cards with generous space between them */
+    .chart-box { background: var(--card); border: 1px solid var(--line); padding: 28px 28px 24px; margin-bottom: 72px; }
+    .chart-box .caption { color: var(--ink-soft); font-size: 0.95rem; margin: 0 0 18px; }
+    .chart-holder { position: relative; height: 380px; }
+
+    /* Table (hidden until clicked) — neutral, overrides the site's lavender table colors */
+    details.data { background: var(--card); border: 1px solid var(--line); padding: 8px 20px; }
+    details.data summary { cursor: pointer; font-weight: bold; padding: 10px 0; }
+    .table-wrap { overflow-x: auto; }
+    main.dash table { width: 100%; border-collapse: collapse; font-family: inherit; font-size: 0.95rem; margin: 8px 0 16px; }
+    main.dash th, main.dash td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--ink); }
+    main.dash th { background: #ececef; color: var(--ink); position: sticky; top: 0; }
+    main.dash tr:nth-child(even) td { background: #f8f8f9; }
+    main.dash td:first-child, main.dash td.num, main.dash th.num { white-space: nowrap; }
+    main.dash td.num, main.dash th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    main.dash tr.refund td { color: #55545b; font-style: italic; }
+
+    main.dash footer { color: var(--ink-soft); border-top-color: var(--line); }
+
+    @media (max-width: 600px) {
+      main.dash { padding: 28px 16px 60px; }
+      .total .value { font-size: 3rem; }
+      .chart-box { padding: 20px 14px 16px; margin-bottom: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== SITE NAV: same as the other pages, with this page marked current ===== -->
+  <nav class="site-nav">
+    <a href="index.html">Home</a>
+    <a href="project.html">Project</a>
+    <a href="support.html">Support</a>
+    <a href="expenses.html" aria-current="page">Expenses</a>
+  </nav>
+
+<main class="dash">
+
+  <h1>R&amp;D Expenses</h1>
+  <div class="need-box">
+    <p class="eyebrow">Immediate Need $10 Million – Estimated Allocation:<br>
+      New Facility $2M<br>
+      New Equipment $2M<br>
+      Operating Expenses $600K/yr for 10 years</p>
+  </div>
+
+  <!-- ===== FILTERS: change these and every number, chart and the table redraw ===== -->
+  <div class="filters" role="group" aria-label="Filters">
+    <label>Group
+      <select id="filter-group">
+        <option value="All">All</option>
+        <!-- the top 3 groups are added here by the script -->
+      </select>
+    </label>
+    <label>From
+      <select id="filter-from"></select>
+    </label>
+    <label>To
+      <select id="filter-to"></select>
+    </label>
+    <button type="button" id="filter-reset">Reset</button>
+  </div>
+
+  <!-- ===== THE ONE TOTAL (filled in by the script) ===== -->
+  <div class="total">
+    <span class="label" id="total-label">Total spending, net of refunds</span>
+    <span class="value" id="total-spending">–</span>
+    <span class="scope" id="total-scope"></span>
+  </div>
+
+  <!-- ===== THREE SUMMARY NUMBERS (filled in by the script) ===== -->
+  <div class="summary" id="summary"></div>
+
+  <!-- ===== CHART 1: spending by month (bar) ===== -->
+  <section class="chart-box">
+    <h2 id="monthly-title">Total spending by month, all categories</h2>
+    <p class="caption" id="monthly-caption"></p>
+    <div class="chart-holder">
+      <canvas id="monthly-chart" aria-label="Bar chart of spending by month"></canvas>
+    </div>
+  </section>
+
+  <!-- ===== CHART 2: what makes up the top 3 groups (horizontal bar) ===== -->
+  <section class="chart-box">
+    <h2 id="category-title">Primary expenses: what makes up the top 3 groups</h2>
+    <p class="caption">Net spending by category for the months selected; each label names its group. Hover a bar for the exact amount.</p>
+    <div class="chart-holder" id="category-holder">
+      <canvas id="category-chart" aria-label="Bar chart of spending by category"></canvas>
+    </div>
+  </section>
+
+  <!-- ===== CHART 3: the top 3 groups over time (line) ===== -->
+  <section class="chart-box">
+    <h2 id="trend-title">The top 3 groups over time</h2>
+    <p class="caption">Net spending per month, oldest to newest. Hover a month to compare the groups.</p>
+    <div class="chart-holder">
+      <canvas id="trend-chart" aria-label="Line chart of spending per month for each of the top three groups"></canvas>
+    </div>
+  </section>
+
+  <!-- ===== THE TABLE: hidden by default; click to show ===== -->
+  <details class="data">
+  <summary id="table-toggle">Show all transactions</summary>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Source</th>
+          <th>Kind</th>
+          <th>Purpose</th>
+          <th>Group</th>
+          <th>Category</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  </details>
+
+  <footer>Dr. Andrew Meyers</footer>
+</main>
+
+<!-- ===== LIBRARY: Chart.js 4.4.1 from the jsDelivr CDN ===== -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+
+<!-- ===== DATA: the CSV pasted in as a JavaScript array, so the page works
+     when the file is simply opened (no separate file to load) =====
+     amount > 0 = money spent; amount < 0 (Spending rows only) = a refund. -->
+<script>
+const DATA = [
+  {"date":"2025-09-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2025-09-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":6.45},
+  {"date":"2025-09-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":10.99},
+  {"date":"2025-09-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":19.78},
+  {"date":"2025-09-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":-94.56},
+  {"date":"2025-10-01","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":20.0},
+  {"date":"2025-10-01","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":60.0},
+  {"date":"2025-10-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":58.58},
+  {"date":"2025-10-01","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":287.01},
+  {"date":"2025-10-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":6.47},
+  {"date":"2025-10-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":32.53},
+  {"date":"2025-10-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":9.99},
+  {"date":"2025-10-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":14.51},
+  {"date":"2025-10-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":15.27},
+  {"date":"2025-10-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":22.7},
+  {"date":"2025-10-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":16.78},
+  {"date":"2025-10-06","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Account verification","amount":0.01},
+  {"date":"2025-10-06","source":"Business checking","kind":"Money in","purpose":"-","group":"-","category":"Sales revenue","amount":241.1},
+  {"date":"2025-10-06","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Account verification","amount":0.01},
+  {"date":"2025-10-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":30.63},
+  {"date":"2025-10-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":6.25},
+  {"date":"2025-10-07","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":30.0},
+  {"date":"2025-10-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":61.25},
+  {"date":"2025-10-09","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":240.0},
+  {"date":"2025-10-09","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":240.0},
+  {"date":"2025-10-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2025-10-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":37.76},
+  {"date":"2025-10-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":45.22},
+  {"date":"2025-10-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":19.61},
+  {"date":"2025-10-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":4.34},
+  {"date":"2025-10-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2025-10-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":13.99},
+  {"date":"2025-10-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":46.46},
+  {"date":"2025-10-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":552.65},
+  {"date":"2025-10-15","source":"Business checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":500.0},
+  {"date":"2025-10-15","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":50.0},
+  {"date":"2025-10-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":47.83},
+  {"date":"2025-10-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":132.58},
+  {"date":"2025-10-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":51.37},
+  {"date":"2025-10-16","source":"Business checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":42.84},
+  {"date":"2025-10-16","source":"Business checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":106.12},
+  {"date":"2025-10-16","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":123.74},
+  {"date":"2025-10-17","source":"Business checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":500.0},
+  {"date":"2025-10-17","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":25.92},
+  {"date":"2025-10-17","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":45.02},
+  {"date":"2025-10-17","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":57.78},
+  {"date":"2025-10-19","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":4.28},
+  {"date":"2025-10-20","source":"Business checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":500.0},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":-323.11},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":17.12},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":38.09},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":60.84},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":212.29},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":229.35},
+  {"date":"2025-10-20","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":323.11},
+  {"date":"2025-10-20","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":47.83},
+  {"date":"2025-10-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":-3.13},
+  {"date":"2025-10-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":-6.99},
+  {"date":"2025-10-20","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":47.83},
+  {"date":"2025-10-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":9.38},
+  {"date":"2025-10-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":30.71},
+  {"date":"2025-10-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":21.5},
+  {"date":"2025-10-21","source":"Business checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":26.45},
+  {"date":"2025-10-21","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":45.0},
+  {"date":"2025-10-21","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":46.46},
+  {"date":"2025-10-21","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":51.37},
+  {"date":"2025-10-21","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":46.46},
+  {"date":"2025-10-21","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":51.37},
+  {"date":"2025-10-22","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":58.26},
+  {"date":"2025-10-22","source":"Business checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":200.0},
+  {"date":"2025-10-22","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":5407.05},
+  {"date":"2025-10-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":17.71},
+  {"date":"2025-10-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":74.11},
+  {"date":"2025-10-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":2.46},
+  {"date":"2025-10-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":9.89},
+  {"date":"2025-10-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":15.44},
+  {"date":"2025-10-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":24.99},
+  {"date":"2025-10-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":44.94},
+  {"date":"2025-10-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":8.72},
+  {"date":"2025-10-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2025-10-29","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Recreation","amount":1.09},
+  {"date":"2025-10-29","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Recreation","amount":2.18},
+  {"date":"2025-10-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":10.82},
+  {"date":"2025-10-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":100.0},
+  {"date":"2025-10-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":24.99},
+  {"date":"2025-10-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":144.0},
+  {"date":"2025-10-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":50.51},
+  {"date":"2025-11-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":10.0},
+  {"date":"2025-11-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":21.0},
+  {"date":"2025-11-07","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":15.85},
+  {"date":"2025-11-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2025-11-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":17.19},
+  {"date":"2025-11-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2025-11-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":66.12},
+  {"date":"2025-11-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2025-11-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":7.52},
+  {"date":"2025-11-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":23.24},
+  {"date":"2025-11-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":185.8},
+  {"date":"2025-11-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":552.65},
+  {"date":"2025-11-13","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":522.06},
+  {"date":"2025-11-13","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":13.99},
+  {"date":"2025-11-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":6.9},
+  {"date":"2025-11-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":3.76},
+  {"date":"2025-11-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":56.82},
+  {"date":"2025-11-17","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":628.84},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":3.76},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":25.66},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":29.21},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":34.4},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":37.27},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":49.23},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":87.11},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":101.05},
+  {"date":"2025-11-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":27.58},
+  {"date":"2025-11-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":21.5},
+  {"date":"2025-11-19","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":240.0},
+  {"date":"2025-11-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":4.42},
+  {"date":"2025-11-21","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":1313.76},
+  {"date":"2025-11-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":13.44},
+  {"date":"2025-11-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":21.71},
+  {"date":"2025-11-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":55.24},
+  {"date":"2025-11-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":8.0},
+  {"date":"2025-11-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2025-11-28","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":567.14},
+  {"date":"2025-11-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":6.45},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":10.0},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":12.99},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":218.92},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":268.72},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":384.67},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":465.83},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":35.0},
+  {"date":"2025-12-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":1.05},
+  {"date":"2025-12-01","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":283.36},
+  {"date":"2025-12-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":-12.99},
+  {"date":"2025-12-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":11.07},
+  {"date":"2025-12-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":37.63},
+  {"date":"2025-12-03","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":8.59},
+  {"date":"2025-12-03","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":37.83},
+  {"date":"2025-12-04","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":63.0},
+  {"date":"2025-12-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":9.67},
+  {"date":"2025-12-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":27.95},
+  {"date":"2025-12-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":4.3},
+  {"date":"2025-12-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":43.36},
+  {"date":"2025-12-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":-144.0},
+  {"date":"2025-12-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.22},
+  {"date":"2025-12-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":30.11},
+  {"date":"2025-12-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":38.53},
+  {"date":"2025-12-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":84.22},
+  {"date":"2025-12-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":99.51},
+  {"date":"2025-12-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2025-12-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2025-12-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":29.21},
+  {"date":"2025-12-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":3.76},
+  {"date":"2025-12-11","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2025-12-11","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":4.35},
+  {"date":"2025-12-11","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2025-12-11","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":44.32},
+  {"date":"2025-12-12","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":567.14},
+  {"date":"2025-12-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":3.76},
+  {"date":"2025-12-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":5.69},
+  {"date":"2025-12-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":552.65},
+  {"date":"2025-12-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":13.99},
+  {"date":"2025-12-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":26.87},
+  {"date":"2025-12-16","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":29.37},
+  {"date":"2025-12-16","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":30.08},
+  {"date":"2025-12-16","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":5.69},
+  {"date":"2025-12-16","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":65.76},
+  {"date":"2025-12-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":24.6},
+  {"date":"2025-12-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":29.5},
+  {"date":"2025-12-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":5.69},
+  {"date":"2025-12-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":21.5},
+  {"date":"2025-12-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":40.41},
+  {"date":"2025-12-19","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":10.1},
+  {"date":"2025-12-22","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":18.79},
+  {"date":"2025-12-23","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":24.6},
+  {"date":"2025-12-23","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":48.85},
+  {"date":"2025-12-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":24.99},
+  {"date":"2025-12-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":5.79},
+  {"date":"2025-12-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":27.6},
+  {"date":"2025-12-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":7.52},
+  {"date":"2025-12-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":49.5},
+  {"date":"2025-12-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":19.47},
+  {"date":"2025-12-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":29.0},
+  {"date":"2025-12-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2025-12-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":20.38},
+  {"date":"2026-01-05","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":567.14},
+  {"date":"2026-01-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":15.44},
+  {"date":"2026-01-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":4.17},
+  {"date":"2026-01-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":139.62},
+  {"date":"2026-01-06","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":2500.0},
+  {"date":"2026-01-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":182.92},
+  {"date":"2026-01-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":39.06},
+  {"date":"2026-01-07","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":16.13},
+  {"date":"2026-01-07","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":21.51},
+  {"date":"2026-01-07","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":255.78},
+  {"date":"2026-01-07","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":537.99},
+  {"date":"2026-01-08","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":997.0},
+  {"date":"2026-01-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":32.26},
+  {"date":"2026-01-08","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":997.0},
+  {"date":"2026-01-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":18.42},
+  {"date":"2026-01-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":59.56},
+  {"date":"2026-01-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":120.95},
+  {"date":"2026-01-12","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":200.0},
+  {"date":"2026-01-12","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":200.0},
+  {"date":"2026-01-12","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":997.0},
+  {"date":"2026-01-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-01-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-01-12","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":100.0},
+  {"date":"2026-01-12","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":200.0},
+  {"date":"2026-01-13","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":13.99},
+  {"date":"2026-01-13","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":28.45},
+  {"date":"2026-01-13","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":42.91},
+  {"date":"2026-01-13","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":552.65},
+  {"date":"2026-01-14","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Financial aid","amount":8504.57},
+  {"date":"2026-01-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":400.0},
+  {"date":"2026-01-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":65.76},
+  {"date":"2026-01-16","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":244.68},
+  {"date":"2026-01-20","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":567.14},
+  {"date":"2026-01-20","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":1000.0},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":5.38},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":27.95},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":89.53},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":168.11},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":477.28},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":559.72},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":853.3},
+  {"date":"2026-01-20","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":1000.0},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":21.5},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":36.14},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":300.0},
+  {"date":"2026-01-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":973.65},
+  {"date":"2026-01-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":28.7},
+  {"date":"2026-01-22","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":45.61},
+  {"date":"2026-01-22","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":46.14},
+  {"date":"2026-01-23","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":8.67},
+  {"date":"2026-01-26","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":567.14},
+  {"date":"2026-01-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":20.0},
+  {"date":"2026-01-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":53.67},
+  {"date":"2026-01-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":190.05},
+  {"date":"2026-01-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":216.74},
+  {"date":"2026-01-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":475.7},
+  {"date":"2026-01-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":-45.27},
+  {"date":"2026-01-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":378.53},
+  {"date":"2026-01-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":39.99},
+  {"date":"2026-01-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":1.19},
+  {"date":"2026-01-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2026-01-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":22.4},
+  {"date":"2026-01-29","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":26.01},
+  {"date":"2026-01-29","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":66.95},
+  {"date":"2026-01-31","source":"Credit card","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":9000.0},
+  {"date":"2026-02-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":167.86},
+  {"date":"2026-02-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":40.03},
+  {"date":"2026-02-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":8.04},
+  {"date":"2026-02-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":73.63},
+  {"date":"2026-02-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":2.98},
+  {"date":"2026-02-03","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Taxes & fees","amount":129.49},
+  {"date":"2026-02-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":100.0},
+  {"date":"2026-02-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":81.25},
+  {"date":"2026-02-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":10.27},
+  {"date":"2026-02-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":0.01},
+  {"date":"2026-02-05","source":"Credit card","kind":"Money in","purpose":"-","group":"-","category":"Interest & rewards","amount":338.51},
+  {"date":"2026-02-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":7.26},
+  {"date":"2026-02-06","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":300.0},
+  {"date":"2026-02-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":703.3},
+  {"date":"2026-02-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":65.01},
+  {"date":"2026-02-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":80.07},
+  {"date":"2026-02-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":146.87},
+  {"date":"2026-02-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":160.64},
+  {"date":"2026-02-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":227.36},
+  {"date":"2026-02-09","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":40.0},
+  {"date":"2026-02-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-02-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":15.26},
+  {"date":"2026-02-11","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-02-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":552.62},
+  {"date":"2026-02-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":138.78},
+  {"date":"2026-02-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":66.52},
+  {"date":"2026-02-13","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":13.99},
+  {"date":"2026-02-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":100.28},
+  {"date":"2026-02-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":57.75},
+  {"date":"2026-02-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":223.46},
+  {"date":"2026-02-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":38.99},
+  {"date":"2026-02-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":38.14},
+  {"date":"2026-02-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":92.25},
+  {"date":"2026-02-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":12.9},
+  {"date":"2026-02-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":37.83},
+  {"date":"2026-02-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":39.18},
+  {"date":"2026-02-19","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":214.17},
+  {"date":"2026-02-19","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":29.5},
+  {"date":"2026-02-19","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-02-19","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":27.32},
+  {"date":"2026-02-22","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":56.8},
+  {"date":"2026-02-22","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":321.45},
+  {"date":"2026-02-23","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":122.47},
+  {"date":"2026-02-23","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":88.0},
+  {"date":"2026-02-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":71.39},
+  {"date":"2026-02-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":8.23},
+  {"date":"2026-02-24","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":500.0},
+  {"date":"2026-02-25","source":"Credit card","kind":"Spending","purpose":"Business","group":"Facility","category":"Utilities","amount":28.74},
+  {"date":"2026-02-26","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":14.0},
+  {"date":"2026-02-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2026-02-27","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":40000.0},
+  {"date":"2026-03-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":7.98},
+  {"date":"2026-03-02","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":960.0},
+  {"date":"2026-03-03","source":"Credit card","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":9000.0},
+  {"date":"2026-03-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":12.39},
+  {"date":"2026-03-03","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":676.0},
+  {"date":"2026-03-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":6.52},
+  {"date":"2026-03-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":8.67},
+  {"date":"2026-03-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-03-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":8.37},
+  {"date":"2026-03-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":42.46},
+  {"date":"2026-03-04","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":21161.57},
+  {"date":"2026-03-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":23.52},
+  {"date":"2026-03-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-03-06","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":997.0},
+  {"date":"2026-03-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":18.62},
+  {"date":"2026-03-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":10.99},
+  {"date":"2026-03-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":12.0},
+  {"date":"2026-03-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":8.67},
+  {"date":"2026-03-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-03-09","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":997.0},
+  {"date":"2026-03-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-03-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":9.1},
+  {"date":"2026-03-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":1.85},
+  {"date":"2026-03-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":3.1},
+  {"date":"2026-03-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-03-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-03-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":12.47},
+  {"date":"2026-03-10","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Recreation","amount":217.0},
+  {"date":"2026-03-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":21.84},
+  {"date":"2026-03-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-03-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":7.77},
+  {"date":"2026-03-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":0.01},
+  {"date":"2026-03-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":50.43},
+  {"date":"2026-03-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-03-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":564.28},
+  {"date":"2026-03-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":25.9},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":7.95},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":27.08},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":17.43},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":7.2},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":27.07},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":48.54},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":26.65},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":22.76},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":130.78},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":160.0},
+  {"date":"2026-03-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":186.0},
+  {"date":"2026-03-15","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":32.18},
+  {"date":"2026-03-15","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":7.0},
+  {"date":"2026-03-15","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":22.44},
+  {"date":"2026-03-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":47.02},
+  {"date":"2026-03-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":94.62},
+  {"date":"2026-03-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":238.41},
+  {"date":"2026-03-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":72.45},
+  {"date":"2026-03-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":92.25},
+  {"date":"2026-03-18","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":427.91},
+  {"date":"2026-03-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":39.16},
+  {"date":"2026-03-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":49.1},
+  {"date":"2026-03-19","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":412.13},
+  {"date":"2026-03-20","source":"Credit card","kind":"Money moved","purpose":"-","group":"-","category":"Card credit balance returned","amount":9952.47},
+  {"date":"2026-03-20","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":69.32},
+  {"date":"2026-03-21","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":115.0},
+  {"date":"2026-03-21","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":58.5},
+  {"date":"2026-03-21","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":10.72},
+  {"date":"2026-03-21","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Storage, shipping & printing","amount":3.29},
+  {"date":"2026-03-23","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-03-23","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":65.66},
+  {"date":"2026-03-23","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":13.23},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":16.99},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":252.49},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":17.33},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":20.58},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":46.05},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":10.83},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":15.04},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":69.31},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":107.41},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":27.08},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":63.93},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":48.71},
+  {"date":"2026-03-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":32.46},
+  {"date":"2026-03-24","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":28.89},
+  {"date":"2026-03-25","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":5.6},
+  {"date":"2026-03-25","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Interest & rewards","amount":0.04},
+  {"date":"2026-03-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":35.0},
+  {"date":"2026-03-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.84},
+  {"date":"2026-03-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":9.74},
+  {"date":"2026-03-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":21.66},
+  {"date":"2026-03-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":7.6},
+  {"date":"2026-03-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":99.65},
+  {"date":"2026-03-28","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":410.5},
+  {"date":"2026-03-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":60.9},
+  {"date":"2026-03-30","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Card credit balance returned","amount":9952.47},
+  {"date":"2026-03-30","source":"Business checking","kind":"Money moved","purpose":"-","group":"-","category":"Refunded deposit","amount":997.0},
+  {"date":"2026-03-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":8.08},
+  {"date":"2026-03-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":30.1},
+  {"date":"2026-03-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":15.81},
+  {"date":"2026-03-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":49.39},
+  {"date":"2026-03-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":46.03},
+  {"date":"2026-03-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":5.59},
+  {"date":"2026-03-30","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":294.63},
+  {"date":"2026-03-31","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":42.24},
+  {"date":"2026-03-31","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":29.77},
+  {"date":"2026-03-31","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":9.19},
+  {"date":"2026-03-31","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":70.27},
+  {"date":"2026-04-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":15.49},
+  {"date":"2026-04-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":14.39},
+  {"date":"2026-04-02","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":18.21},
+  {"date":"2026-04-02","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":13.01},
+  {"date":"2026-04-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":685.0},
+  {"date":"2026-04-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":1615.45},
+  {"date":"2026-04-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":-537.99},
+  {"date":"2026-04-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":537.99},
+  {"date":"2026-04-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":18.45},
+  {"date":"2026-04-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":91.56},
+  {"date":"2026-04-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":5.4},
+  {"date":"2026-04-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":20.85},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":14.08},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":18.41},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":11.67},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":15.38},
+  {"date":"2026-04-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":315.37},
+  {"date":"2026-04-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-04-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":43.34},
+  {"date":"2026-04-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":18.4},
+  {"date":"2026-04-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":5.19},
+  {"date":"2026-04-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":56.34},
+  {"date":"2026-04-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-04-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":82.68},
+  {"date":"2026-04-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":8.06},
+  {"date":"2026-04-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":46.59},
+  {"date":"2026-04-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":78.0},
+  {"date":"2026-04-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":383.58},
+  {"date":"2026-04-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":48.66},
+  {"date":"2026-04-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":130.2},
+  {"date":"2026-04-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":162.51},
+  {"date":"2026-04-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":13.15},
+  {"date":"2026-04-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Rocketry parts & membership","amount":36.7},
+  {"date":"2026-04-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":7.5},
+  {"date":"2026-04-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Rocketry parts & membership","amount":13.07},
+  {"date":"2026-04-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":97.53},
+  {"date":"2026-04-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":63.36},
+  {"date":"2026-04-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":564.15},
+  {"date":"2026-04-15","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":17.33},
+  {"date":"2026-04-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":92.25},
+  {"date":"2026-04-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":150.54},
+  {"date":"2026-04-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":15.58},
+  {"date":"2026-04-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":20.22},
+  {"date":"2026-04-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":9.74},
+  {"date":"2026-04-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":38.33},
+  {"date":"2026-04-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":38.97},
+  {"date":"2026-04-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":31.41},
+  {"date":"2026-04-19","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":3.67},
+  {"date":"2026-04-19","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":44.0},
+  {"date":"2026-04-20","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":10.83},
+  {"date":"2026-04-20","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":7.03},
+  {"date":"2026-04-20","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":14.03},
+  {"date":"2026-04-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":39.16},
+  {"date":"2026-04-21","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Deposit","amount":50.0},
+  {"date":"2026-04-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-04-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":34.24},
+  {"date":"2026-04-22","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":29.5},
+  {"date":"2026-04-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":18.8},
+  {"date":"2026-04-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":108.58},
+  {"date":"2026-04-24","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Interest & rewards","amount":0.01},
+  {"date":"2026-04-25","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":29.25},
+  {"date":"2026-04-25","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":39.0},
+  {"date":"2026-04-25","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Recreation","amount":27.09},
+  {"date":"2026-04-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":14.5},
+  {"date":"2026-04-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":8.99},
+  {"date":"2026-04-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":46.49},
+  {"date":"2026-04-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":72.51},
+  {"date":"2026-04-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":105.8},
+  {"date":"2026-04-29","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":260.0},
+  {"date":"2026-04-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":43.34},
+  {"date":"2026-04-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":60.76},
+  {"date":"2026-05-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":8.66},
+  {"date":"2026-05-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":17.33},
+  {"date":"2026-05-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":29.28},
+  {"date":"2026-05-01","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":770.42},
+  {"date":"2026-05-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":94.47},
+  {"date":"2026-05-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":901.0},
+  {"date":"2026-05-05","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":43.09},
+  {"date":"2026-05-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":34.66},
+  {"date":"2026-05-07","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":39.0},
+  {"date":"2026-05-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-05-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-05-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":6.47},
+  {"date":"2026-05-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":102.52},
+  {"date":"2026-05-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-05-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":109.41},
+  {"date":"2026-05-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":9.74},
+  {"date":"2026-05-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Rocketry parts & membership","amount":70.0},
+  {"date":"2026-05-11","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-05-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":37.07},
+  {"date":"2026-05-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":564.15},
+  {"date":"2026-05-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":-15.16},
+  {"date":"2026-05-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":16.37},
+  {"date":"2026-05-13","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":30.0},
+  {"date":"2026-05-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":46.99},
+  {"date":"2026-05-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":92.25},
+  {"date":"2026-05-19","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":66.72},
+  {"date":"2026-05-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":691.0},
+  {"date":"2026-05-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":228.0},
+  {"date":"2026-05-27","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Interest & rewards","amount":0.01},
+  {"date":"2026-05-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":65.52},
+  {"date":"2026-05-27","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":111.63},
+  {"date":"2026-05-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":17.33},
+  {"date":"2026-05-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":8.99},
+  {"date":"2026-05-28","source":"Main checking","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":-45.0},
+  {"date":"2026-05-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":345.0},
+  {"date":"2026-05-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":345.0},
+  {"date":"2026-05-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":-1392.08},
+  {"date":"2026-05-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":12.02},
+  {"date":"2026-05-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":100.0},
+  {"date":"2026-06-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":26.89},
+  {"date":"2026-06-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-06-01","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":21.99},
+  {"date":"2026-06-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":24.49},
+  {"date":"2026-06-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":824.69},
+  {"date":"2026-06-03","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":8.13},
+  {"date":"2026-06-03","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":51.43},
+  {"date":"2026-06-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":3.89},
+  {"date":"2026-06-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":47.16},
+  {"date":"2026-06-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":15.24},
+  {"date":"2026-06-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-06-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-06-08","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":65.0},
+  {"date":"2026-06-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-06-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":6.47},
+  {"date":"2026-06-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-06-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-06-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-06-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":6.49},
+  {"date":"2026-06-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":558.7},
+  {"date":"2026-06-16","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":92.18},
+  {"date":"2026-06-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":179.99},
+  {"date":"2026-06-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":2330.05},
+  {"date":"2026-06-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-06-18","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":14.16},
+  {"date":"2026-06-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":33.48},
+  {"date":"2026-06-22","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":39.22},
+  {"date":"2026-06-22","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":281.48},
+  {"date":"2026-06-22","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":96.87},
+  {"date":"2026-06-22","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-06-23","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":31.37},
+  {"date":"2026-06-23","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":41.06},
+  {"date":"2026-06-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-06-26","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":111.67},
+  {"date":"2026-06-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":8.99},
+  {"date":"2026-06-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":59.59},
+  {"date":"2026-06-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":29.96},
+  {"date":"2026-07-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":7.32},
+  {"date":"2026-07-01","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":21.99},
+  {"date":"2026-07-02","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":5.0},
+  {"date":"2026-07-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":766.96},
+  {"date":"2026-07-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":327.72},
+  {"date":"2026-07-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":31.31},
+  {"date":"2026-07-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":109.24},
+  {"date":"2026-07-06","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-07-06","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":40.0},
+  {"date":"2026-07-07","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":35.29},
+  {"date":"2026-07-07","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":62.0},
+  {"date":"2026-07-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":109.23},
+  {"date":"2026-07-08","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-07-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-07-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":6.47},
+  {"date":"2026-07-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-07-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":109.24},
+  {"date":"2026-07-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-07-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":15.82},
+  {"date":"2026-07-13","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":43.3},
+  {"date":"2026-07-13","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":1000.0},
+  {"date":"2026-07-14","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":218.48},
+  {"date":"2026-07-14","source":"Credit card","kind":"Spending","purpose":"Unassigned","group":"Owner's draw & unidentified","category":"Unidentified","amount":239.54},
+  {"date":"2026-07-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":-110.63},
+  {"date":"2026-07-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":-111.67},
+  {"date":"2026-07-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":558.7},
+  {"date":"2026-07-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":100.21},
+  {"date":"2026-07-16","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":109.24},
+  {"date":"2026-07-17","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":54.62},
+  {"date":"2026-07-18","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":39.11},
+  {"date":"2026-07-18","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":54.62},
+  {"date":"2026-07-18","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":23.96},
+  {"date":"2026-07-20","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":12.93},
+  {"date":"2026-07-20","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Recreation","amount":45.0},
+  {"date":"2026-07-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":33.48},
+  {"date":"2026-07-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":36.33},
+  {"date":"2026-07-21","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":1000.0},
+  {"date":"2026-07-23","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":273.09},
+  {"date":"2026-07-24","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":54.62},
+  {"date":"2026-07-25","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":10.0},
+  {"date":"2026-07-25","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":54.62},
+  {"date":"2026-07-26","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":-100.0},
+  {"date":"2026-07-26","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":2.64},
+  {"date":"2026-07-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":18.83},
+  {"date":"2026-07-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":8.99},
+  {"date":"2026-07-28","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":49.01},
+  {"date":"2026-07-29","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":22.64},
+  {"date":"2026-07-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":481.27},
+  {"date":"2026-07-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":22.7},
+  {"date":"2026-07-30","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-07-31","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":10.43},
+  {"date":"2026-08-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":45.85},
+  {"date":"2026-08-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":21.14},
+  {"date":"2026-08-02","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Business meals","amount":28.29},
+  {"date":"2026-08-03","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":29.31},
+  {"date":"2026-08-04","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":56.25},
+  {"date":"2026-08-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":44.52},
+  {"date":"2026-08-04","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":899.39},
+  {"date":"2026-08-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":112.51},
+  {"date":"2026-08-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":91.0},
+  {"date":"2026-08-05","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":35.73},
+  {"date":"2026-08-06","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":43.49},
+  {"date":"2026-08-06","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":40.0},
+  {"date":"2026-08-06","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":1000.0},
+  {"date":"2026-08-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-08-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-08-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":69.0},
+  {"date":"2026-08-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":6.47},
+  {"date":"2026-08-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-08-10","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-08-11","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":112.27},
+  {"date":"2026-08-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":-43.75},
+  {"date":"2026-08-12","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Car rental & tolls","amount":-53.25},
+  {"date":"2026-08-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":29.78},
+  {"date":"2026-08-12","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":558.68},
+  {"date":"2026-08-14","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":220.44},
+  {"date":"2026-08-17","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":220.44},
+  {"date":"2026-08-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":1.52},
+  {"date":"2026-08-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":45.39},
+  {"date":"2026-08-17","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":100.26},
+  {"date":"2026-08-18","source":"Credit card","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":48.69},
+  {"date":"2026-08-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":33.48},
+  {"date":"2026-08-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":38.59},
+  {"date":"2026-08-19","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Financial aid","amount":4749.46},
+  {"date":"2026-08-20","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-08-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":835.94},
+  {"date":"2026-08-24","source":"Business checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":10.43},
+  {"date":"2026-08-25","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":66.12},
+  {"date":"2026-08-26","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":412.88},
+  {"date":"2026-08-26","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":2451.32},
+  {"date":"2026-08-26","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":23.98},
+  {"date":"2026-08-26","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Transfer between own accounts","amount":20000.0},
+  {"date":"2026-08-26","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":2405.31},
+  {"date":"2026-08-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":21.67},
+  {"date":"2026-08-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":195.85},
+  {"date":"2026-08-27","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":179.39},
+  {"date":"2026-08-27","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":8172.07},
+  {"date":"2026-08-28","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":8.99},
+  {"date":"2026-08-29","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":538.28},
+  {"date":"2026-08-29","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":65.01},
+  {"date":"2026-08-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Electronics & equipment","amount":285.01},
+  {"date":"2026-08-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":200.0},
+  {"date":"2026-08-30","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":300.0},
+  {"date":"2026-08-31","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":1381.68},
+  {"date":"2026-09-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":32.48},
+  {"date":"2026-09-01","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":20.16},
+  {"date":"2026-09-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":7.31},
+  {"date":"2026-09-01","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":21.99},
+  {"date":"2026-09-01","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":36.09},
+  {"date":"2026-09-02","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":23.16},
+  {"date":"2026-09-02","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Online parts & materials","amount":19.5},
+  {"date":"2026-09-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Education & training","category":"Tuition, fees & library","amount":741.84},
+  {"date":"2026-09-02","source":"Main checking","kind":"Spending","purpose":"Business","group":"Facility","category":"Rent","amount":869.72},
+  {"date":"2026-09-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":1398.78},
+  {"date":"2026-09-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Resale inventory","category":"Collectibles for resale","amount":3098.79},
+  {"date":"2026-09-03","source":"Credit card","kind":"Spending","purpose":"Business","group":"Research & development","category":"Tools & hardware","amount":47.75},
+  {"date":"2026-09-03","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":3277.68},
+  {"date":"2026-09-04","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Financial aid","amount":946.54},
+  {"date":"2026-09-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":8.98},
+  {"date":"2026-09-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"General supplies","amount":138.7},
+  {"date":"2026-09-07","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":19.0},
+  {"date":"2026-09-08","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":57.31},
+  {"date":"2026-09-08","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":5997.67},
+  {"date":"2026-09-09","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":14.99},
+  {"date":"2026-09-09","source":"Main checking","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":25.0},
+  {"date":"2026-09-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":6.47},
+  {"date":"2026-09-10","source":"Credit card","kind":"Spending","purpose":"Business","group":"Operations","category":"Software, phone & subscriptions","amount":2.99},
+  {"date":"2026-09-10","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Financial aid","amount":1381.68},
+  {"date":"2026-09-14","source":"Main checking","kind":"Money in","purpose":"-","group":"-","category":"Financial aid","amount":741.84},
+  {"date":"2026-09-14","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":757.82},
+  {"date":"2026-09-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Vehicle & travel","category":"Fuel & car upkeep","amount":73.04},
+  {"date":"2026-09-15","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":100.26},
+  {"date":"2026-09-16","source":"Credit card","kind":"Spending","purpose":"Unassigned","group":"Owner's draw & unidentified","category":"Unidentified","amount":5.65},
+  {"date":"2026-09-18","source":"Main checking","kind":"Spending","purpose":"Business","group":"Insurance","category":"Insurance","amount":33.48},
+  {"date":"2026-09-21","source":"Main checking","kind":"Spending","purpose":"Business","group":"Research & development","category":"Cash: paid research, stipends & supplies","amount":500.0},
+  {"date":"2026-09-22","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":20.0},
+  {"date":"2026-09-23","source":"Main checking","kind":"Money moved","purpose":"-","group":"-","category":"Credit card payment","amount":29.0},
+  {"date":"2026-09-25","source":"Credit card","kind":"Spending","purpose":"Owner's draw","group":"Owner's draw & unidentified","category":"Owner's draw","amount":20.0}
+];
+</script>
+
+<!-- ===== SCRIPT ===== -->
+<script>
+  // ---------- Colors: neutrals + ONE accent ----------
+  const ACCENT = "#6b46c1";        // purple from my website — only for the most important mark
+  const BAR_GRAY = "#8e8e96";      // every other bar
+  const LINE_GRAYS = ["#4a4a52", "#8e8e96"];   // the other two lines (plus different dashes and markers)
+  const INK = "#1c1b1f", GRID = "#ececef";
+
+  // ---------- Helpers ----------
+  // Format a number as US dollars, e.g. 1234.5 -> "$1,234.50"
+  const dollars = n => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  // Same, rounded to whole dollars (for tiles)
+  const wholeDollars = n => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  // "2026-03" -> "Mar 2026"
+  const monthLabel = m => { const [y, mo] = m.split("-").map(Number);
+    return new Date(y, mo - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" }); };
+  // "2026-09-25" -> "Sep 25, 2026"
+  const niceDate = iso => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  // Add up the amounts of a list of rows
+  const sum = rows => rows.reduce((s, row) => s + row.amount, 0);
+  // Color list where only the largest value gets the accent
+  const highlightMax = values => { const max = Math.max(...values);
+    return values.map(v => (v === max && max > 0) ? ACCENT : BAR_GRAY); };
+
+  const SPENDING = DATA.filter(row => row.kind === "Spending");   // refunds included (negative)
+
+  // ---------- The 12-month period every number on the page uses ----------
+  const newest = DATA.reduce((max, row) => row.date > max ? row.date : max, "");
+  const [newestYear, newestMonth] = newest.split("-").map(Number);
+  const MONTHS = [];                                    // ["2025-10", ..., "2026-09"]
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(newestYear, newestMonth - 1 - i, 1);
+    MONTHS.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  }
+
+  // ---------- The top 3 groups for the whole period (fixed order) ----------
+  const groupTotalsAll = {};
+  SPENDING.filter(row => row.date >= MONTHS[0]).forEach(row => {
+    groupTotalsAll[row.group] = (groupTotalsAll[row.group] || 0) + row.amount;
+  });
+  const TOP3 = Object.entries(groupTotalsAll).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => g);
+  // Each line keeps its own style whatever the filter; the biggest group's line is the accent
+  const LINE_STYLE = {
+    [TOP3[0]]: { color: ACCENT,        dash: [],     point: "circle" },
+    [TOP3[1]]: { color: LINE_GRAYS[0], dash: [],     point: "rect" },
+    [TOP3[2]]: { color: LINE_GRAYS[1], dash: [6, 4], point: "triangle" }
+  };
+
+  // ---------- Fill in the filter menus ----------
+  const groupSelect = document.getElementById("filter-group");
+  const fromSelect = document.getElementById("filter-from");
+  const toSelect = document.getElementById("filter-to");
+  TOP3.forEach(g => groupSelect.add(new Option(g, g)));
+  MONTHS.forEach(m => { fromSelect.add(new Option(monthLabel(m), m)); toSelect.add(new Option(monthLabel(m), m)); });
+  fromSelect.value = MONTHS[0];
+  toSelect.value = MONTHS[MONTHS.length - 1];
+
+  // ---------- Create the three charts once (empty); render() fills them ----------
+  const chartsReady = typeof Chart !== "undefined";
+  let monthlyChart, categoryChart, trendChart;
+  if (!chartsReady) {
+    // Say so plainly if Chart.js didn't load (offline, blocked CDN); numbers and table still work
+    document.querySelectorAll(".chart-holder").forEach(h => h.textContent =
+      "The chart library (Chart.js) didn't load. Check your internet connection and reload.");
+  } else {
+    // Chart text in the page's body font and dark ink
+    Chart.defaults.font.family = '"Iowan Old Style", "Palatino Linotype", Georgia, serif';
+    Chart.defaults.font.size = 14;
+    Chart.defaults.color = INK;
+
+    const moneyAxis = { beginAtZero: true, grid: { color: GRID }, border: { display: false },
+                        ticks: { callback: v => "$" + Number(v).toLocaleString("en-US") } };
+
+    // CHART 1 — bars, one per month; the highest month is purple
+    monthlyChart = new Chart(document.getElementById("monthly-chart"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Spending", data: [], backgroundColor: [],
+              borderRadius: 4, borderSkipped: "start", maxBarThickness: 48 }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+                   tooltip: { callbacks: { label: item => dollars(item.parsed.y) } } },
+        scales: { x: { grid: { display: false } }, y: moneyAxis } }
+    });
+
+    // CHART 2 — horizontal bars, one per category; the biggest category is purple
+    categoryChart = new Chart(document.getElementById("category-chart"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Spending", data: [], backgroundColor: [],
+              borderRadius: 4, borderSkipped: "start", maxBarThickness: 26 }] },
+      options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+                   tooltip: { callbacks: { label: item => dollars(item.parsed.x) } } },
+        scales: { x: moneyAxis, y: { grid: { display: false } } } }
+    });
+
+    // CHART 3 — lines, one per group, oldest month on the left; the biggest group is purple
+    // Adds 18px under a chart's key so it doesn't crowd the top number on the axis
+    const legendSpace = { id: "legendSpace", beforeInit(chart) {
+      const fit = chart.legend.fit;
+      chart.legend.fit = function () { fit.bind(chart.legend)(); this.height += 18; };
+    } };
+
+    trendChart = new Chart(document.getElementById("trend-chart"), {
+      plugins: [legendSpace],
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: { responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },     // hover anywhere in a month
+        plugins: { legend: { position: "top", align: "start", labels: { usePointStyle: true } },
+                   tooltip: { callbacks: { label: item => item.dataset.label + ": " + dollars(item.parsed.y) } } },
+        scales: { x: { grid: { display: false } }, y: moneyAxis } }
+    });
+  }
+
+  // ---------- render(): read the filters, then redraw EVERYTHING from the same rows ----------
+  function render(event) {
+    // Read the filters. If the months cross, move the OTHER menu to match the one just changed
+    // (e.g. From = Aug while To = Mar -> To becomes Aug), so the reader's pick is never undone.
+    if (fromSelect.value > toSelect.value) {
+      if (event && event.target === toSelect) fromSelect.value = toSelect.value;
+      else toSelect.value = fromSelect.value;
+    }
+    const from = fromSelect.value, to = toSelect.value;
+    const group = groupSelect.value;                    // "All" or one of TOP3
+    const months = MONTHS.filter(m => m >= from && m <= to);
+    const inRange = row => row.date.slice(0, 7) >= from && row.date.slice(0, 7) <= to;
+    const rangeText = months.length === 1 ? monthLabel(from) : monthLabel(from) + " – " + monthLabel(to);
+
+    const spendInRange = SPENDING.filter(inRange);                       // every group
+    const shown = group === "All" ? spendInRange : spendInRange.filter(row => row.group === group);
+    const shownTotal = sum(shown);
+    const allTotal = sum(spendInRange);
+
+    // 1. THE TOTAL
+    document.getElementById("total-label").textContent =
+      group === "All" ? "Total spending, net of refunds" : group + " spending, net of refunds";
+    document.getElementById("total-spending").textContent = dollars(shownTotal);
+    document.getElementById("total-scope").textContent = rangeText + ".";
+
+    // 2. THREE SUMMARY NUMBERS
+    //    All     -> the top 3 groups, each with its share of all spending
+    //    a group -> its share of all spending, its monthly average, and its biggest category
+    let tiles;
+    if (group === "All") {
+      tiles = TOP3.map(g => {
+        const amt = sum(spendInRange.filter(row => row.group === g));
+        return [g, wholeDollars(amt), (allTotal ? Math.round(amt / allTotal * 100) : 0) + "% of all spending"];
+      });
+    } else {
+      const cats = {};
+      shown.forEach(row => cats[row.category] = (cats[row.category] || 0) + row.amount);
+      const [bigCat, bigAmt] = Object.entries(cats).sort((a, b) => b[1] - a[1])[0] || ["None", 0];
+      tiles = [
+        ["Share of all spending", (allTotal ? Math.round(shownTotal / allTotal * 100) : 0) + "%", "of " + wholeDollars(allTotal) + " total"],
+        ["Average per month", wholeDollars(shownTotal / months.length), "over " + months.length + (months.length === 1 ? " month" : " months")],
+        ["Biggest category", wholeDollars(bigAmt), bigCat]
+      ];
+    }
+    const summary = document.getElementById("summary");
+    summary.innerHTML = "";
+    tiles.forEach(([label, value, share]) => {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.innerHTML = '<span class="label"></span><span class="value"></span><span class="share"></span>';
+      tile.querySelector(".label").textContent = label;
+      tile.querySelector(".value").textContent = value;
+      tile.querySelector(".share").textContent = share;
+      summary.appendChild(tile);
+    });
+
+    // 3. CHART 1 — spending per month (all groups, or just the chosen one)
+    const monthTotals = months.map(m => sum(shown.filter(row => row.date.startsWith(m))));
+    document.getElementById("monthly-title").textContent =
+      group === "All" ? "Total spending by month, all categories" : group + " spending by month";
+    document.getElementById("monthly-caption").textContent = rangeText +
+      (to === MONTHS[MONTHS.length - 1] ? ". The data ends " + niceDate(newest) + "." : ".") +
+      " The highest month is in purple.";
+
+    // 4. CHART 2 — categories inside the top 3 groups (or inside the chosen group)
+    const chartGroups = group === "All" ? TOP3 : [group];
+    const catTotals = {};
+    spendInRange.filter(row => chartGroups.includes(row.group)).forEach(row => {
+      const key = row.group + "|" + row.category;
+      catTotals[key] = (catTotals[key] || 0) + row.amount;
+    });
+    const bars = Object.entries(catTotals)
+      .map(([key, amount]) => ({ group: key.split("|")[0], category: key.split("|")[1], amount }))
+      .sort((a, b) => chartGroups.indexOf(a.group) - chartGroups.indexOf(b.group) || b.amount - a.amount);
+    document.getElementById("category-title").textContent = group === "All"
+      ? "Primary expenses: what makes up the top 3 groups" : "Primary expenses: what makes up " + group;
+    // Two-line labels (category, then its group) when several groups are shown
+    const barHeight = group === "All" ? 46 : 34;
+    document.getElementById("category-holder").style.height = (Math.max(bars.length, 1) * barHeight + 50) + "px";
+
+    // 5. CHART 3 — one line per group, by month
+    document.getElementById("trend-title").textContent =
+      group === "All" ? "The top 3 groups over time" : group + " over time";
+
+    // Push the new numbers into the charts and redraw them
+    if (chartsReady) {
+      monthlyChart.data.labels = months.map(monthLabel);
+      monthlyChart.data.datasets[0].data = monthTotals;
+      monthlyChart.data.datasets[0].backgroundColor = highlightMax(monthTotals);
+      monthlyChart.update();
+
+      // (a category with the same name as its group, e.g. Insurance, gets one line)
+      categoryChart.data.labels = bars.map(b => group === "All" && b.category !== b.group ? [b.category, b.group] : b.category);
+      categoryChart.data.datasets[0].data = bars.map(b => b.amount);
+      categoryChart.data.datasets[0].backgroundColor = highlightMax(bars.map(b => b.amount));
+      categoryChart.resize();          // its box just changed height
+      categoryChart.update();
+
+      trendChart.data.labels = months.map(monthLabel);
+      trendChart.data.datasets = chartGroups.map(g => {
+        // with one group chosen, its single line is the important one -> purple
+        const style = group === "All" ? LINE_STYLE[g] : { ...LINE_STYLE[g], color: ACCENT };
+        return {
+          label: g,
+          data: months.map(m => sum(spendInRange.filter(row => row.group === g && row.date.startsWith(m)))),
+          borderColor: style.color, backgroundColor: style.color, borderDash: style.dash,
+          pointStyle: style.point, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, tension: 0
+        };
+      });
+      trendChart.update();
+    }
+
+    // 6. THE TABLE — only the rows that match the filters
+    const tableRows = DATA.filter(row => inRange(row) && (group === "All" || row.group === group));
+    const tbody = document.getElementById("rows");
+    tbody.innerHTML = "";
+    tableRows.forEach(row => {
+      const tr = document.createElement("tr");
+      if (row.kind === "Spending" && row.amount < 0) tr.className = "refund";
+      [row.date, row.source, row.kind, row.purpose, row.group, row.category].forEach(text => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr.appendChild(td);
+      });
+      const amt = document.createElement("td");
+      amt.className = "num";
+      amt.textContent = dollars(row.amount);
+      tr.appendChild(amt);
+      tbody.appendChild(tr);
+    });
+    document.getElementById("table-toggle").textContent = "Show " + tableRows.length + " transactions";
+  }
+
+  // ---------- Redraw whenever a filter changes ----------
+  [groupSelect, fromSelect, toSelect].forEach(sel => sel.addEventListener("change", render));
+  document.getElementById("filter-reset").addEventListener("click", () => {
+    groupSelect.value = "All"; fromSelect.value = MONTHS[0]; toSelect.value = MONTHS[MONTHS.length - 1];
+    render();
+  });
+  render();   // first draw
+</script>
+</body>
+</html>
